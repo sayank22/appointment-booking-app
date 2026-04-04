@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -29,7 +30,11 @@ export default function BookingScreen({ route, navigation }) {
 
   const handleBooking = async () => {
     if (!selectedSlot) {
+      if (Platform.OS === "web") {
+  alert("Error", "Please select a time slot");
+} else {
       Alert.alert("Error", "Please select a time slot");
+}
       return;
     }
 
@@ -45,7 +50,11 @@ export default function BookingScreen({ route, navigation }) {
 
     await saveData("appointments", [...appointments, newAppointment]);
 
+    if (Platform.OS === "web") {
+  alert("Success", "Appointment booked!");
+} else {
     Alert.alert("Success", "Appointment booked!");
+}
     navigation.navigate("Appointments");
   };
 
@@ -77,10 +86,15 @@ export default function BookingScreen({ route, navigation }) {
               >
                 {slot}
               </Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* ✅ Selected Slot Display */}
+    <Text style={styles.selectedText}>
+      Selected: {selectedSlot || "None"}
+    </Text>
 
       <TouchableOpacity style={styles.button} onPress={handleBooking}>
         <Text style={styles.buttonText}>Confirm Booking</Text>
@@ -108,6 +122,13 @@ const styles = StyleSheet.create({
 
   selectedSlot: {
     backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
+  },
+
+  selectedText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "500",
   },
 
   bookedSlot: {

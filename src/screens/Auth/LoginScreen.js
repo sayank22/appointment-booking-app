@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Alert,
   Button,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +16,11 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      if (Platform.OS === "web") {
+  alert("Please enter email and password");
+} else {
       Alert.alert("Error", "Please enter email and password");
+}
       return;
     }
 
@@ -26,13 +31,21 @@ export default function LoginScreen({ navigation }) {
     );
 
     if (!user) {
+      if (Platform.OS === "web") {
+  alert("Invalid credentials");
+} else {
       Alert.alert("Error", "Invalid credentials");
+}
       return;
     }
 
     await saveData("currentUser", user);
 
+    if (Platform.OS === "web") {
+  alert("Login successful");
+} else {
     Alert.alert("Success", "Login successful");
+}
     navigation.navigate("Home");
   };
 
@@ -58,17 +71,22 @@ export default function LoginScreen({ navigation }) {
       <Button title="Login" onPress={handleLogin} />
 
       <Text
-        style={{ marginTop: 15, color: "blue" }}
+        style={{ marginTop: 15, color: "blue",}}
         onPress={() => navigation.navigate("Register")}
       >
-        Don't have an account? Register .....
+        Don't have an account? Register to Continue.
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
+  container: {
+  flex: 1,
+  justifyContent: "flex-start",
+  padding: 20,
+  paddingTop: 160,
+},
   title: { fontSize: 24, marginBottom: 20 },
   input: {
     borderWidth: 1,

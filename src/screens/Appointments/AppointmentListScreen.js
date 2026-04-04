@@ -1,33 +1,73 @@
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import { getData } from "../../services/storage";
+import {
+  Alert,
+  FlatList,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { getData, saveData } from "../../services/storage";
 
 export default function AppointmentListScreen() {
   const [appointments, setAppointments] = useState([]);
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      const data = await getData("appointments");
-      setAppointments(data);
-    };
+  const loadAppointments = async () => {
+    const allAppointments = await getData("appointments");
+    const currentUser = await getData("currentUser");
 
-    fetchAppointments();
+    const userAppointments = allAppointments.filter(
+      (a) => a.userEmail === currentUser.email
+    );
+
+    setAppointments(userAppointments);
+  };
+
+  useEffect(() => {
+    loadAppointments();
   }, []);
+
+  const handleCancel = async (id) => {
+    const allAppointments = await getData("appointments");
+
+    const updated = allAppointments.filter((a) => a.id !== id);
+
+    await saveData("appointments", updated);
+
+    if (Platform.OS === "web") {
+  alert("Cancelled", "Appointment removed");
+} else {
+    Alert.alert("Cancelled", "Appointment removed");
+}
+    loadAppointments();
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>My Appointments</Text>
 
-      <FlatList
-        data={appointments}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text>{item.providerName}</Text>
-            <Text>{item.slot}</Text>
-          </View>
-        )}
-      />
+      {appointments.length === 0 ? (
+        <Text>No appointments yet</Text>
+      ) : (
+        <FlatList
+          data={appointments}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.name}>{item.providerName}</Text>
+              <Text style={styles.slot}>{item.slot}</Text>
+
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => handleCancel(item.id)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -35,10 +75,24 @@ export default function AppointmentListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 22, marginBottom: 10 },
+
   card: {
     padding: 15,
-    borderWidth: 1,
+    borderRadius: 10,
+    backgroundColor: "#f5f5f5",
     marginBottom: 10,
-    borderRadius: 8,
   },
+
+  name: { fontSize: 16, fontWeight: "bold" },
+  slot: { marginTop: 5 },
+
+  cancelBtn: {
+    marginTop: 10,
+    backgroundColor: "red",
+    padding: 8,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+
+  cancelText: { color: "#fff" },
 });
