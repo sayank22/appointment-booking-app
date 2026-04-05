@@ -34,8 +34,13 @@ export default function HomeScreen({ navigation }) {
           >
             <Text style={styles.name}>{item.name}</Text>
             <Image
-  source={{ uri: item.image }}
-  style={{ width: 50, height: 50, marginBottom: 5 }}
+            source={{ uri: item.image }}
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              marginBottom: 5,
+              }}
 />
             <Text style={styles.category}>{item.category}</Text>
           </TouchableOpacity>
