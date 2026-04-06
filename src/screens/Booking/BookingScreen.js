@@ -1,154 +1,225 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
-  Platform,
+  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { getData, saveData } from "../../services/storage";
+import { Colors } from "../../utils/Colors";
+import { showError, showSuccess, showWarning } from "../../utils/feedback";
 
 export default function BookingScreen({ route, navigation }) {
-  const { provider } = route.params;
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  // 1. Catch the selectedSlot passed from the Details screen!
+  const { provider, selectedSlot: initialSlot } = route.params;
+  
+  const [selectedSlot, setSelectedSlot] = useState(initialSlot || null);
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [loading, setLoading] = useState(false );
+
+
 
   useEffect(() => {
     const fetchAppointments = async () => {
-      const appointments = await getData("appointments");
+      const appointments = await getData("appointments", []);
 
       const providerBookings = appointments
         .filter((a) => a.providerName === provider.name)
         .map((a) => a.slot);
 
       setBookedSlots(providerBookings);
+      
+      // If the slot they clicked on the previous screen is actually booked, clear it
+      if (providerBookings.includes(initialSlot)) {
+        setSelectedSlot(null);
+        return showError("Sorry, that slot was just booked by someone else!");
+      }
     };
 
     fetchAppointments();
-  }, []);
+}, [initialSlot, provider.name]);
 
-  const handleBooking = async () => {
+const handleBooking = async () => {
+  try {
     if (!selectedSlot) {
-      if (Platform.OS === "web") {
-  alert("Error", "Please select a time slot");
-} else {
-      Alert.alert("Error", "Please select a time slot");
-}
-      return;
+      return showWarning("Please select a time slot");
     }
 
+    setLoading(true);
+
     const currentUser = await getData("currentUser");
-    const appointments = await getData("appointments");
+    if (!currentUser || !currentUser.email) {
+      setLoading(false);
+      return showError("Please login again");
+    }
+
+    const appointments = await getData("appointments", []);
+
+    const isTaken = appointments.some(
+      (a) => a.providerName === provider.name && a.slot === selectedSlot
+    );
+
+    if (isTaken) {
+      setSelectedSlot(null);
+      setLoading(false);
+      return showError("Sorry, that slot was just booked by someone else!");
+    }
 
     const newAppointment = {
       id: Date.now().toString(),
       userEmail: currentUser.email,
       providerName: provider.name,
+      providerImage: provider.image,
+      category: provider.category,
       slot: selectedSlot,
     };
 
     await saveData("appointments", [...appointments, newAppointment]);
+    showSuccess("Appointment booked successfully!");
+    navigation.navigate("My Appointments");
+  } catch (error) {
+    showError("An error occurred while booking. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-    if (Platform.OS === "web") {
-  alert("Success", "Appointment booked!");
-} else {
-    Alert.alert("Success", "Appointment booked!");
-}
-    navigation.navigate("Appointments");
-  };
+return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Book {provider.name}</Text>
+        <Text style={styles.subtitle}>Select an available time slot below:</Text>
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Select Time Slot</Text>
+        <View style={styles.slotContainer}>
+          {provider.slots.map((slot) => {
+            const isBooked = bookedSlots.includes(slot);
+            const isSelected = selectedSlot === slot;
 
-      <View style={styles.slotContainer}>
-        {provider.slots.map((slot) => {
-          const isBooked = bookedSlots.includes(slot);
-          const isSelected = selectedSlot === slot;
-
-          return (
-            <TouchableOpacity
-              key={slot}
-              style={[
-                styles.slot,
-                isSelected && styles.selectedSlot,
-                isBooked && styles.bookedSlot,
-              ]}
-              onPress={() => !isBooked && setSelectedSlot(slot)}
-              disabled={isBooked}
-            >
-              <Text
+            return (
+              <TouchableOpacity
+                key={slot}
                 style={[
-                  styles.slotText,
-                  isBooked && { color: "gray" },
+                  styles.slot,
+                  isSelected && styles.selectedSlot,
+                  isBooked && styles.bookedSlot,
                 ]}
+                onPress={() => !isBooked && setSelectedSlot(slot)}
+                disabled={isBooked}
               >
-                {slot}
-              </Text>
+                <Text
+                  style={[
+                    styles.slotText,
+                    isSelected && { color: Colors.textWhite }, 
+                    isBooked && { color: Colors.textMuted },
+                  ]}
+                >
+                  {isBooked ? "Booked" : slot}
+                </Text>
               </TouchableOpacity>
-          );
-        })}
+            );
+          })}
+        </View>
+
+        {/* Selected Slot Display */}
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryLabel}>Selected Time:</Text>
+          <Text style={styles.selectedText}>
+            {selectedSlot ? selectedSlot : "None Selected"}
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.button, !selectedSlot && styles.buttonDisabled]} 
+          onPress={handleBooking}
+          disabled={!selectedSlot} 
+        >
+          <Text style={styles.buttonText}>Confirm Booking</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* ✅ Selected Slot Display */}
-    <Text style={styles.selectedText}>
-      Selected: {selectedSlot || "None"}
-    </Text>
-
-      <TouchableOpacity style={styles.button} onPress={handleBooking}>
-        <Text style={styles.buttonText}>Confirm Booking</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1, padding: 20 },
-  title: { fontSize: 20, marginBottom: 15 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 5, color: Colors.textMain },
+  subtitle: { fontSize: 16, color: Colors.textSecondary, marginBottom: 20 },
 
   slotContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    marginBottom: 20,
   },
 
   slot: {
-    padding: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderRadius: 6,
-    margin: 5,
-  },
-
-  selectedSlot: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#4CAF50",
-  },
-
-  selectedText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: "500",
-  },
-
-  bookedSlot: {
-    backgroundColor: "#ddd",
-  },
-
-  slotText: {
-    fontSize: 14,
-  },
-
-  button: {
-    marginTop: 20,
-    backgroundColor: "blue",
-    padding: 12,
-    borderRadius: 6,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    marginRight: 10,
+    marginBottom: 10,
+    minWidth: 100,
     alignItems: "center",
   },
 
-  buttonText: {
-    color: "#fff",
+  selectedSlot: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+
+  bookedSlot: {
+    backgroundColor: Colors.booked,
+    borderColor: Colors.booked,
+  },
+
+  slotText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.textMain,
+  },
+
+  summaryContainer: {
+    backgroundColor: Colors.summaryBackground,
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  summaryLabel: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+
+  selectedText: {
+    fontSize: 18,
     fontWeight: "bold",
+    color: Colors.textMain,
+  },
+
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: Colors.black,
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  
+  buttonDisabled: {
+    backgroundColor: Colors.buttonDisabled,
+  },
+
+  buttonText: {
+    color: Colors.textWhite,
+    fontWeight: "bold",
+    fontSize: 18,
   },
 });

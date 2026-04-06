@@ -1,45 +1,55 @@
 import { useState } from "react";
-import { Alert, Button, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import AnimatedHeader from "../../components/AnimatedHeader";
 import { getData, saveData } from "../../services/storage";
+import { Colors } from "../../utils/Colors";
+import { showError, showSuccess, showWarning } from "../../utils/feedback";
+import { hashPassword } from "../../utils/hash";
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
+const handleRegister = async () => {
+  try {
     if (!email || !password) {
-      if (Platform.OS === "web") {
-  alert("Please fill all fields");
-} else {
-      Alert.alert("Error", "Please fill all fields");
-}
-      return;
+      return showWarning("Please fill all fields");
     }
 
-    let users = await getData("users");
+    setLoading(true);
 
-    const userExists = users.find((u) => u.email === email);
-    if (userExists) {
-      if (Platform.OS === "web") {
-  alert("User already exists");
-} else {
-      Alert.alert("Error", "User already exists");
-}
-      return;
-    }
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail.includes("@")) {
+    setLoading(false);
+    return showWarning("Please enter a valid email address");
+  }
 
-    users.push({ email, password });
-    await saveData("users", users);
-if (Platform.OS === "web") {
-  alert("User already exists");
-} else {
-    Alert.alert("Success", "Registered successfully");
-}
-    navigation.navigate("Login");
-  };
+  let users = await getData("users", []);
 
+  const userExists = users.find((u) => u.email === normalizedEmail);
+  if (userExists) {
+    setLoading(false);
+    return showError("User already exists");
+  }
+
+const hashedPassword = hashPassword(password);
+
+
+  users.push({ email: normalizedEmail, password: hashedPassword });
+  await saveData("users", users);
+
+  showSuccess("Registered successfully");
+  navigation.navigate("Login");
+  } catch {
+    showError("Registration failed. Try again.");
+  } finally {    
+  setLoading(false);
+  }
+};
   return (
     <View style={styles.container}>
+      <AnimatedHeader title="Register to BookIt" />
       <Text style={styles.title}>Register</Text>
 
       <TextInput
@@ -47,6 +57,8 @@ if (Platform.OS === "web") {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -57,7 +69,25 @@ if (Platform.OS === "web") {
         onChangeText={setPassword}
       />
 
-      <Button title="Register" onPress={handleRegister} />
+      <TouchableOpacity
+  style={[
+    styles.button,
+    loading && styles.buttonDisabled
+  ]}
+  onPress={handleRegister}
+  disabled={loading}
+>
+  <Text style={styles.buttonText}>
+    {loading ? "Registering..." : "Register"}
+  </Text>
+</TouchableOpacity>
+
+      <Text
+        style={{ marginTop: 15, color: Colors.primary, textAlign: "center" }}
+        onPress={() => navigation.navigate("Login")}
+      >
+        Already have an account? Login here.
+      </Text>
     </View>
   );
 }
@@ -65,15 +95,43 @@ if (Platform.OS === "web") {
 const styles = StyleSheet.create({
   container: {
   flex: 1,
-  justifyContent: "flex-start",
+  justifyContent: "center", 
   padding: 20,
-  paddingTop: 160,
-},
-  title: { fontSize: 24, marginBottom: 20 },
+  backgroundColor: Colors.background, 
+  },
+
+  title: { 
+    fontSize: 28,
+    fontWeight: "bold", 
+    marginBottom: 30,
+    color: Colors.textMain,
+    textAlign: "center",
+  },
+
   input: {
+    backgroundColor: Colors.cardWhite,
     borderWidth: 1,
-    marginBottom: 10,
-    padding: 10,
-    borderRadius: 5,
+    borderColor: Colors.border,
+    marginBottom: 15,
+    padding: 12,
+    borderRadius: 8,
+    color: Colors.textMain,
+  },
+
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  buttonDisabled: {
+    backgroundColor: Colors.buttonDisabled,
+  },
+
+  buttonText: {
+    color: Colors.textWhite,
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

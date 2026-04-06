@@ -1,56 +1,64 @@
 import { useState } from "react";
 import {
-  Alert,
-  Button,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  TouchableOpacity,
+  View
 } from "react-native";
+import AnimatedHeader from "../../components/AnimatedHeader";
 import { getData, saveData } from "../../services/storage";
+import { Colors } from "../../utils/Colors";
+import { showError, showSuccess, showWarning } from "../../utils/feedback";
+import { hashPassword } from "../../utils/hash";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
+  try {
+    setLoading(true);
     if (!email || !password) {
-      if (Platform.OS === "web") {
-  alert("Please enter email and password");
-} else {
-      Alert.alert("Error", "Please enter email and password");
-}
-      return;
+      return showWarning("Please enter email and password");
     }
 
-    const users = await getData("users");
+    const users = await getData("users", []);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes("@")) {
+      setLoading(false);
+      return showWarning("Please enter a valid email address");
+    }
+
+    const hashedPassword = hashPassword(password);
 
     const user = users.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email === normalizedEmail && u.password === hashedPassword
     );
 
     if (!user) {
-      if (Platform.OS === "web") {
-  alert("Invalid credentials");
-} else {
-      Alert.alert("Error", "Invalid credentials");
-}
-      return;
+      setLoading(false);
+      return showError("Invalid credentials");
     }
 
     await saveData("currentUser", user);
 
-    if (Platform.OS === "web") {
-  alert("Login successful");
-} else {
-    Alert.alert("Success", "Login successful");
-}
+    showSuccess("Login successful");
     navigation.navigate("Home");
-  };
+  } catch {
+    showError("Login failed. Try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
+      
+        <AnimatedHeader title="Welcome in BookIt" />
+      
       <Text style={styles.title}>Login</Text>
 
       <TextInput
@@ -58,6 +66,8 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -68,13 +78,23 @@ export default function LoginScreen({ navigation }) {
         onChangeText={setPassword}
       />
 
-      <Button title="Login" onPress={handleLogin} />
+      <TouchableOpacity
+  style={[
+    styles.button,
+    loading && styles.buttonDisabled
+  ]}
+  onPress={handleLogin}
+  disabled={loading}
+>
+  <Text style={styles.buttonText}>
+    {loading ? "Logging in..." : "Login"}
+  </Text>
+</TouchableOpacity>
 
       <Text
-        style={{ marginTop: 15, color: "blue",}}
+        style={{ marginTop: 15, color: Colors.primary, textAlign: "center" }}
         onPress={() => navigation.navigate("Register")}
-      >
-        Don't have an account? Register to Continue.
+      >{`Don't have an account? Register to Continue.`}
       </Text>
     </View>
   );
@@ -83,15 +103,41 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
   flex: 1,
-  justifyContent: "flex-start",
+  justifyContent: "center", 
   padding: 20,
-  paddingTop: 160,
-},
-  title: { fontSize: 24, marginBottom: 20 },
+  backgroundColor: Colors.background, 
+  },
+  title: { 
+    fontSize: 28,
+    fontWeight: "bold", 
+    marginBottom: 30,
+    color: Colors.textMain,
+    textAlign: "center",
+  },
   input: {
+    backgroundColor: Colors.cardWhite,
     borderWidth: 1,
-    marginBottom: 10,
-    padding: 10,
-    borderRadius: 5,
+    borderColor: Colors.border,
+    marginBottom: 15,
+    padding: 12,
+    borderRadius: 8,
+    color: Colors.textMain,
+  },
+
+  button: {
+    backgroundColor: Colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  buttonDisabled: {
+    backgroundColor: Colors.buttonDisabled,
+  },
+  
+  buttonText: {
+    color: Colors.textWhite,
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
