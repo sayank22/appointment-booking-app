@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
 import { getData, saveData } from "../../services/storage";
 import { Colors } from "../../utils/Colors";
 import { showError, showSuccess, showWarning } from "../../utils/feedback";
@@ -17,7 +18,6 @@ export default function BookingScreen({ route, navigation }) {
   const [selectedSlot, setSelectedSlot] = useState(initialSlot || null);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loading, setLoading] = useState(false );
-
 
 
   useEffect(() => {
@@ -40,6 +40,8 @@ export default function BookingScreen({ route, navigation }) {
     fetchAppointments();
 }, [initialSlot, provider.name]);
 
+const { user } = useAuth();
+
 const handleBooking = async () => {
   try {
     if (!selectedSlot) {
@@ -48,10 +50,9 @@ const handleBooking = async () => {
 
     setLoading(true);
 
-    const currentUser = await getData("currentUser");
-    if (!currentUser || !currentUser.email) {
+    if (!user) {
       setLoading(false);
-      return showError("Please login again");
+      return showError("Session expired. Please login again.");
     }
 
     const appointments = await getData("appointments", []);
@@ -63,12 +64,12 @@ const handleBooking = async () => {
     if (isTaken) {
       setSelectedSlot(null);
       setLoading(false);
-      return showError("Sorry, that slot was just booked by someone else!");
+      return showError("Sorry, that slot was just booked!");
     }
 
     const newAppointment = {
       id: Date.now().toString(),
-      userEmail: currentUser.email,
+      userEmail: user.email,
       providerName: provider.name,
       providerImage: provider.image,
       category: provider.category,
@@ -77,8 +78,8 @@ const handleBooking = async () => {
 
     await saveData("appointments", [...appointments, newAppointment]);
     showSuccess("Appointment booked successfully!");
-    navigation.navigate("My Appointments");
-  } catch (error) {
+    navigation.navigate("Appointments");
+  } catch {
     showError("An error occurred while booking. Please try again.");
   } finally {
     setLoading(false);
@@ -104,9 +105,13 @@ return (
                   isSelected && styles.selectedSlot,
                   isBooked && styles.bookedSlot,
                 ]}
-                onPress={() => !isBooked && setSelectedSlot(slot)}
-                disabled={isBooked}
-              >
+                onPress={() => {
+                  if (!isBooked && !loading) {
+                    setSelectedSlot(slot);
+                  }
+                }}
+                disabled={isBooked || loading}
+                >
                 <Text
                   style={[
                     styles.slotText,
@@ -130,11 +135,16 @@ return (
         </View>
 
         <TouchableOpacity 
-          style={[styles.button, !selectedSlot && styles.buttonDisabled]} 
+          style={[
+            styles.button,
+            (!selectedSlot || loading) && styles.buttonDisabled
+          ]} 
           onPress={handleBooking}
-          disabled={!selectedSlot} 
+          disabled={!selectedSlot || loading} 
         >
-          <Text style={styles.buttonText}>Confirm Booking</Text>
+          <Text style={styles.buttonText}>
+            {loading ? "Booking..." : "Confirm Booking"}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

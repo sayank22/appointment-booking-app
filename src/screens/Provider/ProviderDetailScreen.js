@@ -1,13 +1,12 @@
 import {
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../utils/Colors";
 
 export default function ProviderDetailScreen({ route, navigation }) {

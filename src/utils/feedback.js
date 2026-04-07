@@ -1,26 +1,35 @@
-import { Alert, Platform, ToastAndroid } from "react-native";
+// src/utils/feedback.js
+import { Platform, ToastAndroid } from "react-native";
 import { triggerHaptic } from "./haptics";
 
-function showMessage(message, duration = ToastAndroid.SHORT) {
+// Internal toast handler
+const showToast = (message) => {
   if (Platform.OS === "android") {
-    ToastAndroid.show(message, duration);
-    return;
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    alert(message);
   }
+};
 
-  Alert.alert("Notice", message);
-}
-
-export function showSuccess(message, duration = ToastAndroid.SHORT) {
+// Success
+export const showSuccess = (message = "Success") => {
   triggerHaptic("success");
-  showMessage(message, duration);
-}
+  showToast(message);
+};
 
-export function showWarning(message, duration = ToastAndroid.SHORT) {
-  triggerHaptic("warning");
-  showMessage(message, duration);
-}
-
-export function showError(message, duration = ToastAndroid.SHORT) {
+// Error
+export const showError = (message = "Something went wrong") => {
   triggerHaptic("error");
-  showMessage(message, duration);
-}
+  showToast(message);
+};
+
+// Warning
+export const showWarning = (message = "Warning") => {
+  triggerHaptic("warning");
+  showToast(message);
+};
+
+// Light feedback (no toast)
+export const showImpact = () => {
+  triggerHaptic("light");
+};

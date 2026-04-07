@@ -7,15 +7,18 @@ import {
   View
 } from "react-native";
 import AnimatedHeader from "../../components/AnimatedHeader";
+import { useAuth } from "../../context/AuthContext";
 import { getData, saveData } from "../../services/storage";
 import { Colors } from "../../utils/Colors";
 import { showError, showSuccess, showWarning } from "../../utils/feedback";
 import { hashPassword } from "../../utils/hash";
 
+
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
 const handleLogin = async () => {
   try {
@@ -45,8 +48,8 @@ const handleLogin = async () => {
 
     await saveData("currentUser", user);
 
-    showSuccess("Login successful");
-    navigation.navigate("Home");
+    await login(user);
+showSuccess("Login successful");
   } catch {
     showError("Login failed. Try again.");
   } finally {
@@ -96,6 +99,16 @@ const handleLogin = async () => {
         onPress={() => navigation.navigate("Register")}
       >{`Don't have an account? Register to Continue.`}
       </Text>
+
+      {/* <TouchableOpacity
+  onPress={async () => {
+    await AsyncStorage.clear();
+    console.log("Storage cleared");
+  }}
+>
+  <Text>Reset App</Text>
+</TouchableOpacity> */}
+
     </View>
   );
 }

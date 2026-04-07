@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
+import { ActivityIndicator, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
 import AnimatedHeader from "../components/AnimatedHeader";
 import AppointmentListScreen from "../screens/Appointments/AppointmentListScreen";
@@ -13,37 +14,59 @@ import { Colors } from "../utils/Colors";
 
 const Stack = createNativeStackNavigator();
 
-export default function AppNavigator() {
+
+// AUTH STACK (Login/Register)
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+}
+
+
+// APP STACK (Protected Screens)
+function AppStack() {
   return (
     <Stack.Navigator
       screenOptions={{
         headerTitle: () => <AnimatedHeader title="BookIt" />,
-        Colors: Colors.main,
-        headerTitleAlign: 'center',
+        headerTitleAlign: "center",
         headerStyle: {
           backgroundColor: Colors.cardTeal,
         },
         headerShadowVisible: false,
-        headerTintColor: Colors.primary, 
+        headerTintColor: Colors.primary,
       }}
     >
-      {/* Auth Screens: Hide the header so they look like full-screen splash/login pages */}
-      <Stack.Screen 
-        name="Login" 
-        component={LoginScreen} 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="Register" 
-        component={RegisterScreen} 
-        options={{ headerShown: false }} 
-      />
-
-      {/* Main App Screens: These will automatically use the AnimatedHeader */}
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="ProviderDetails" component={ProviderDetailScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="Appointments" component={AppointmentListScreen} />
     </Stack.Navigator>
   );
+}
+
+
+// MAIN NAVIGATOR (Switch based on auth)
+export default function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  // Loading state (auto-login check)
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  return user ? <AppStack /> : <AuthStack />;
 }

@@ -4,12 +4,12 @@ import {
   FlatList,
   Image,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getData, saveData } from "../../services/storage";
 import { Colors } from "../../utils/Colors";
 import { showImpact, showSuccess } from "../../utils/feedback";

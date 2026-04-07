@@ -1,18 +1,19 @@
 import {
   FlatList,
   Image,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
 import { providers } from "../../data/providers";
-import { saveData } from "../../services/storage";
-
 import { Colors } from "../../utils/Colors";
+import { showSuccess } from "../../utils/feedback";
 
 export default function HomeScreen({ navigation }) {
+  const { logout } = useAuth();
   return (
     <SafeAreaView style={styles.safeArea}> 
       <View style={styles.container}>
@@ -55,9 +56,9 @@ export default function HomeScreen({ navigation }) {
         
         <TouchableOpacity
           onPress={async () => {
-            await saveData("currentUser", null);
-            navigation.replace("Login");
-          }}
+            await logout();
+    showSuccess("Logged out");
+  }}
           style={styles.logoutBtn}
         >
           <Text style={styles.logoutText}>Logout</Text>
@@ -68,31 +69,37 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+
   container: {
     flex: 1,
     padding: 20,
   },
+
   title: {
     color: Colors.main,
     fontSize: 22,
-    marginBottom: 10,
+    marginBottom: 5,
     fontWeight: "bold", 
   },
+
   appointmentBtn: {
-    marginBottom: 15,
-    padding: 10,
+    marginBottom: 30,
+    padding: 5,
     backgroundColor: Colors.primary,
     borderRadius: 6,
     alignItems: "center",
   },
+
   appointmentText: {
     color: Colors.textWhite,
     fontWeight: "bold",
   },
+
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -105,23 +112,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+
   providerImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
     marginRight: 15,
   },
+
   cardTextContainer: {
     flex: 1,
   },
+
   name: {
     fontSize: 18,
     fontWeight: "bold",
   },
+
   category: {
     marginTop: 5,
     color: Colors.textSecondary,
   },
+
   logoutBtn: {
     marginTop: 10,
     marginBottom: 5,
@@ -134,9 +146,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   logoutText: {
     color: Colors.danger,
     fontSize: 16,
     fontWeight: "bold",
   },
+
 });
