@@ -59,8 +59,8 @@ showSuccess("Login successful");
 
   return (
     <View style={styles.container}>
-      
-        <AnimatedHeader title="Welcome in BookIt" />
+
+        <AnimatedHeader title="Welcome to BookIt" />
       
       <Text style={styles.title}>Login</Text>
 
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     color: Colors.textMain,
     textAlign: "center",
   },
+  
   input: {
     backgroundColor: Colors.cardWhite,
     borderWidth: 1,

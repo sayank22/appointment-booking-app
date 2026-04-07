@@ -49,7 +49,9 @@ const hashedPassword = hashPassword(password);
 };
   return (
     <View style={styles.container}>
+
       <AnimatedHeader title="Register to BookIt" />
+
       <Text style={styles.title}>Register</Text>
 
       <TextInput

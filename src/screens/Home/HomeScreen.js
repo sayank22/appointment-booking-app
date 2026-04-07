@@ -18,7 +18,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}> 
       <View style={styles.container}>
 
-{/* 🔥 View Appointments Button */}
+{/* View Appointments Button */}
         <TouchableOpacity
           onPress={() => navigation.navigate("Appointments")}
           style={styles.appointmentBtn}
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.main,
     fontSize: 22,
-    marginBottom: 5,
+    marginBottom: 10,
     fontWeight: "bold", 
   },
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '../utils/Colors';
 
@@ -25,6 +25,11 @@ export default function AnimatedHeader({ title }) {
 
   return (
     <View style={styles.container}>
+      <Image
+        source={require("../../assets/icon.png")}
+        style={styles.logo}
+      />
+
       <Animated.View style={{ 
         opacity: fadeAnim, 
         transform: [{ translateY: slideAnim }] 
@@ -40,6 +45,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  logo: {
+    width: 60,
+    height: 60,
+    marginBottom: 4,
+  },
+  
   headerText: {
     fontSize: 22,
     fontWeight: '800',
