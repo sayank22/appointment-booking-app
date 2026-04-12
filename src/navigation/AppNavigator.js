@@ -53,6 +53,8 @@ function AppStack() {
 export default function AppNavigator() {
   const { user, loading } = useAuth();
 
+  console.log("AppNavigator render", { user: !!user, loading });
+
   // Loading state (auto-login check)
   if (loading) {
     return (

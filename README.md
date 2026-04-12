@@ -1,29 +1,73 @@
-# Welcome to your Expo app 👋
+## Made By - Sayan Kundu
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Full Stack Developer | Hands On Experience in EdTech & Fintech | Passionate about building real-world solutions**
+
+---
+
+## 🔗 Links
+[![Resume](https://img.shields.io/badge/View_Resume-000?style=for-the-badge&logo=ko-fi&logoColor=white)](https://drive.google.com/file/d/1c0JPOQJcRBYOldQvooPfd4gQQ0kkJgbq/view?usp=drive_link)
+[![LinkedIn](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sayan-kundu-70b5442b6/)
+[![Github](https://img.shields.io/badge/github-1DA1F2?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sayank22)
+[![Portfolio](https://img.shields.io/badge/Portfolio-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)](https://sayan-kundu-portfolio.netlify.app)
+---
+
+
+# BookIt App
+
+BookIt is a mobile appointment booking application that allows users to discover service providers, view detailed profiles with ratings, and seamlessly book or manage appointments. It focuses on delivering a smooth and intuitive user experience with real-time feedback and clean UI interactions.
+
+## Features
+
+- **Secure Authentication:** Full login, registration, and logout flow managed globally via AuthContext with password hashing and email normalization.
+- **Provider Discovery:** Dynamic home screen featuring service provider cards with detailed profiles, categories, pricing, and user ratings.
+- **Smart Booking System:** Interactive time-slot selection with built-in logic to detect and prevent double-booking conflicts in real-time.
+- **Appointment Management:** A dedicated dashboard for users to track upcoming bookings and seamlessly cancel appointments.
+- **Premium UX:** Features custom animated headers, platform-specific Toast notifications, and strategic haptic feedback for a highly tactile, native app feel.
+
+---
+
+**Framework:**
+* React Native (Expo)
+**Navigation:
+* React Navigation (Native Stack)
+**State Management & Storage:**
+* React Context API (AuthContext) & AsyncStorage
+**UI/UX Enhancements:**
+* React Native Animated API 
+* Expo Haptics
+* Native Android Toasts
+---
 
 ## Get started
 
-1. Install dependencies
+1. Clone the repo
+
+   ```bash
+   git clone [https://github.com/sayank22/BookIt](https://github.com/sayank22/BookIt)
+   cd prompt-flow-ai
+   ```
+
+2. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Start the app
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## App Links
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+* **Frontend App:** [prompt-flow-ai-sayan-kundu.vercel.app](https://prompt-flow-ai-sayan-kundu.vercel.app)
+
+You can start developing by editing the files inside the **src** directory.
+
+---
 
 ## Get a fresh project
 
@@ -35,16 +79,13 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Demo
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Loom video demonstrating all required features:
 
-## Join the community
+[https://loom.com/share/2e2a62c0c8f0f](https://loom.com/share/2e2a62c0c8f0f)
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+![demo](./assets/demo.png)
+Screenshot

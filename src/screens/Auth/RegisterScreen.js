@@ -1,55 +1,69 @@
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AnimatedHeader from "../../components/AnimatedHeader";
-import { getData, saveData } from "../../services/storage";
+import { useAuth } from "../../context/AuthContext";
 import { Colors } from "../../utils/Colors";
 import { showError, showSuccess, showWarning } from "../../utils/feedback";
-import { hashPassword } from "../../utils/hash";
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-const handleRegister = async () => {
-  try {
-    if (!email || !password) {
-      return showWarning("Please fill all fields");
+  const { register } = useAuth();
+
+  const isValidEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const handleRegister = async () => {
+    if (loading) return; // ✅ prevent double tap
+
+    try {
+      if (!email || !password) {
+        return showWarning("Please fill all fields");
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+
+      if (!isValidEmail(normalizedEmail)) {
+        return showWarning("Enter a valid email address");
+      }
+
+      if (password.length < 6) {
+        return showWarning("Password must be at least 6 characters");
+      }
+
+      setLoading(true);
+
+      await register(normalizedEmail, password);
+
+      showSuccess("Verification email sent! Check your inbox.");
+
+      // ✅ Better navigation (prevents going back)
+      navigation.replace("Login");
+
+    } catch (err) {
+      console.log("REGISTER ERROR:", err);
+
+      if (err.message?.includes("User already registered")) {
+        showWarning("This email is already registered. Try logging in.");
+      } else {
+        showError(err.message || "Registration failed");
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setLoading(true);
-
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail.includes("@")) {
-    setLoading(false);
-    return showWarning("Please enter a valid email address");
-  }
-
-  let users = await getData("users", []);
-
-  const userExists = users.find((u) => u.email === normalizedEmail);
-  if (userExists) {
-    setLoading(false);
-    return showError("User already exists");
-  }
-
-const hashedPassword = hashPassword(password);
-
-
-  users.push({ email: normalizedEmail, password: hashedPassword });
-  await saveData("users", users);
-
-  showSuccess("Registered successfully");
-  navigation.navigate("Login");
-  } catch {
-    showError("Registration failed. Try again.");
-  } finally {    
-  setLoading(false);
-  }
-};
   return (
     <View style={styles.container}>
-
       <AnimatedHeader title="Register to BookIt" />
 
       <Text style={styles.title}>Register</Text>
@@ -61,6 +75,8 @@ const hashedPassword = hashPassword(password);
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        textContentType="emailAddress"
+        returnKeyType="next"
       />
 
       <TextInput
@@ -69,23 +85,22 @@ const hashedPassword = hashPassword(password);
         style={styles.input}
         value={password}
         onChangeText={setPassword}
+        textContentType="newPassword"
+        returnKeyType="done"
       />
 
       <TouchableOpacity
-  style={[
-    styles.button,
-    loading && styles.buttonDisabled
-  ]}
-  onPress={handleRegister}
-  disabled={loading}
->
-  <Text style={styles.buttonText}>
-    {loading ? "Registering..." : "Register"}
-  </Text>
-</TouchableOpacity>
+        style={[styles.button, loading && styles.buttonDisabled]}
+        onPress={handleRegister}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Registering..." : "Register"}
+        </Text>
+      </TouchableOpacity>
 
       <Text
-        style={{ marginTop: 15, color: Colors.primary, textAlign: "center" }}
+        style={styles.link}
         onPress={() => navigation.navigate("Login")}
       >
         Already have an account? Login here.
@@ -96,20 +111,18 @@ const hashedPassword = hashPassword(password);
 
 const styles = StyleSheet.create({
   container: {
-  flex: 1,
-  justifyContent: "center", 
-  padding: 20,
-  backgroundColor: Colors.background, 
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: Colors.background,
   },
-
-  title: { 
+  title: {
     fontSize: 28,
-    fontWeight: "bold", 
+    fontWeight: "bold",
     marginBottom: 30,
     color: Colors.textMain,
     textAlign: "center",
   },
-
   input: {
     backgroundColor: Colors.cardWhite,
     borderWidth: 1,
@@ -119,21 +132,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     color: Colors.textMain,
   },
-
   button: {
     backgroundColor: Colors.primary,
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
   },
-
   buttonDisabled: {
     backgroundColor: Colors.buttonDisabled,
   },
-
   buttonText: {
     color: Colors.textWhite,
     fontWeight: "bold",
     fontSize: 16,
+  },
+  link: {
+    marginTop: 15,
+    color: Colors.primary,
+    textAlign: "center",
   },
 });

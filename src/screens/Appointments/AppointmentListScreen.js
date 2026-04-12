@@ -10,63 +10,65 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext"; // 👈 IMPORT YOUR AUTH
 import { getData, saveData } from "../../services/storage";
 import { Colors } from "../../utils/Colors";
 import { showImpact, showSuccess } from "../../utils/feedback";
 
 export default function AppointmentListScreen() {
   const [appointments, setAppointments] = useState([]);
+  const { user } = useAuth(); // 👈 GET REAL USER DATA
 
   const loadAppointments = async () => {
-    // 1. Added [] and {} fallbacks to prevent crashes
     const allAppointments = await getData("appointments", []);
-    const currentUser = await getData("currentUser", {});
 
-    if (currentUser && currentUser.email) {
+    // Use the real authenticated user's email
+    if (user && user.email) {
       const userAppointments = allAppointments.filter(
-        (a) => a.userEmail === currentUser.email
+        (a) => a.userEmail === user.email
       );
-      setAppointments(userAppointments);
+      // Sort appointments so the newest ones are at the top (optional but recommended)
+      setAppointments(userAppointments.reverse());
     }
   };
 
   useEffect(() => {
+    // We add user to the dependency array so it re-runs if they log in/out
     loadAppointments();
-  }, []);
+  }, [user]);
 
-  // 2. Extracted the actual deletion logic
   const processCancel = async (id) => {
     const allAppointments = await getData("appointments", []);
     const updated = allAppointments.filter((a) => a.id !== id);
     await saveData("appointments", updated);
-    loadAppointments(); // Refresh the list instantly
+    loadAppointments(); 
   };
 
-  // 3. Added a confirmation prompt before deleting
   const handleCancel = (id) => {
-          showImpact();
+    showImpact();
     if (Platform.OS === "web") {
       const confirmCancel = window.confirm("Are you sure you want to cancel this appointment?");
       if (confirmCancel) {
         processCancel(id);
+        showSuccess("Appointment removed");
       }
     } else {
-  Alert.alert(
-    "Cancel Appointment",
-    "Are you sure you want to cancel this booking?",
-    [
-      { text: "No", style: "cancel" },
-      { 
-        text: "Yes, Cancel", 
-        onPress: async () => {
-          await processCancel(id);
-            showSuccess("Appointment removed");
-        }, 
-        style: "destructive" 
-      },
-    ]
-  );
-};
+      Alert.alert(
+        "Cancel Appointment",
+        "Are you sure you want to cancel this booking?",
+        [
+          { text: "No", style: "cancel" },
+          { 
+            text: "Yes, Cancel", 
+            onPress: async () => {
+              await processCancel(id);
+              showSuccess("Appointment removed");
+            }, 
+            style: "destructive" 
+          },
+        ]
+      );
+    }
   };
 
   return (
@@ -97,10 +99,16 @@ export default function AppointmentListScreen() {
                   </View>
                 </View>
 
-                {/* Bottom Row: Time and Cancel Button */}
+                {/* Bottom Row: Date/Time and Cancel Button */}
                 <View style={styles.cardFooter}>
                   <View style={styles.timeBadge}>
-                    <Text style={styles.slotText}>⏱ {item.slot}</Text>
+                    {/* 👈 UPDATED THIS TO SHOW DATE AND TIME */}
+                    <Text style={styles.slotText}>
+                      📅 {new Date(item.date).toLocaleDateString()}
+                    </Text>
+                    <Text style={styles.slotText}>
+                      ⏰ {item.time}
+                    </Text>
                   </View>
 
                   <TouchableOpacity
@@ -121,34 +129,13 @@ export default function AppointmentListScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: Colors.background 
-  },
-  container: { 
-    flex: 1, 
-    padding: 20 
-  },
-  title: { 
-    fontSize: 24, 
-    fontWeight: "bold", 
-    marginBottom: 20,
-    color: Colors.textMain
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, padding: 20 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, color: Colors.textMain },
   
-  // Empty State Styles
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.textMuted,
-    fontStyle: "italic",
-  },
+  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyText: { fontSize: 16, color: Colors.textMuted, fontStyle: "italic" },
 
-  // Card Styles
   card: {
     padding: 15,
     borderRadius: 12,
@@ -159,60 +146,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  providerInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  image: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  textGroup: {
-    flex: 1,
-  },
-  name: { 
-    fontSize: 18, 
-    fontWeight: "bold",
-    color: Colors.textMain,
-  },
-  category: { 
-    fontSize: 14, 
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
+  providerInfo: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+  image: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
+  textGroup: { flex: 1 },
+  name: { fontSize: 18, fontWeight: "bold", color: Colors.textMain },
+  category: { fontSize: 14, color: Colors.textMuted, marginTop: 2 },
 
-  // Footer Styles (Time & Button)
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "center", // Changed to flex-end so the cancel button aligns with the bottom of the date/time
     borderTopWidth: 1,
     borderTopColor: Colors.border, 
     paddingTop: 15,
   },
   timeBadge: {
-    backgroundColor: Colors.primaryLight,
-    paddingVertical: 6,
+    backgroundColor: Colors.primaryLight || "#E6F0FF",
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   slotText: { 
     fontWeight: "600",
     color: Colors.primary,
+    marginBottom: 2, // Adds a tiny gap between the calendar and clock text
   },
   cancelBtn: {
     backgroundColor: Colors.cardWhite,
     borderWidth: 1,
-    borderColor: Colors.danger,
-    paddingVertical: 6,
+    borderColor: Colors.danger || "red",
+    paddingVertical: 8,
     paddingHorizontal: 15,
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  cancelText: { 
-    color: Colors.danger, 
-    fontWeight: "bold" 
-  },
+  cancelText: { color: Colors.danger || "red", fontWeight: "bold" },
 });
