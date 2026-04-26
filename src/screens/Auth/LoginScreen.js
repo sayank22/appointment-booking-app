@@ -1,6 +1,6 @@
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -23,9 +23,32 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Pulling both login methods from context
   const { login, loginWithGoogle } = useAuth();
+
+  useEffect(() => {
+    const processUrl = async (url) => {
+      if (!url) return;
+      
+      const parsedUrl = Linking.parse(url);
+      const authCode = parsedUrl.queryParams?.code;
+
+      if (authCode) {
+        const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+
+        if (
+          error && 
+          !error.message.includes("Invalid login credentials") &&
+          !error.message.includes("flow state")
+        ) {
+          console.error("Deep Link Error:", error.message);
+        }
+      }
+    };
+    const sub = Linking.addEventListener("url", ({ url }) => processUrl(url));
+    Linking.getInitialURL().then(processUrl);
+
+    return () => sub.remove();
+  }, []);
 
   // ✅ Supabase Email login with custom UI feedback
   const handleLogin = async () => {
@@ -63,15 +86,11 @@ export default function LoginScreen({ navigation }) {
         console.log("Browser Result:", result);
 
         if (result.type === "success" && result.url) {
-          // EXCTRACT THE CODE FROM THE URL
           const parsedUrl = Linking.parse(result.url);
           const authCode = parsedUrl.queryParams?.code;
 
           if (authCode) {
-            // Send ONLY the code to Supabase
             const { error } = await supabase.auth.exchangeCodeForSession(authCode);
-            
-            // Ignore the double-fire errors
             if (
               error && 
               !error.message.includes("Invalid login credentials") &&
