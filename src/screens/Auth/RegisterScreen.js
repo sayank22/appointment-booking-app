@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
@@ -12,19 +13,17 @@ import { Colors } from "../../utils/Colors";
 import { showError, showSuccess, showWarning } from "../../utils/feedback";
 
 export default function RegisterScreen({ navigation }) {
+  const { register } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const { register } = useAuth();
 
   const isValidEmail = (email) => {
     return /\S+@\S+\.\S+/.test(email);
   };
 
   const handleRegister = async () => {
-    if (loading) return; // ✅ prevent double tap
-
     try {
       if (!email || !password) {
         return showWarning("Please fill all fields");
@@ -46,14 +45,13 @@ export default function RegisterScreen({ navigation }) {
 
       showSuccess("Verification email sent! Check your inbox.");
 
-      // ✅ Better navigation (prevents going back)
+      // ✅ Replace so user can’t go back to register
       navigation.replace("Login");
-
     } catch (err) {
       console.log("REGISTER ERROR:", err);
 
       if (err.message?.includes("User already registered")) {
-        showWarning("This email is already registered. Try logging in.");
+        showError("Email already registered. Try logging in.");
       } else {
         showError(err.message || "Registration failed");
       }
@@ -64,46 +62,48 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <AnimatedHeader title="Register to BookIt" />
+      
+      <AnimatedHeader title="Welcome to BookIt" />
 
-      <Text style={styles.title}>Register</Text>
+      <Text style={styles.title}>Create Account</Text>
 
       <TextInput
         placeholder="Email"
-        style={styles.input}
         value={email}
         onChangeText={setEmail}
-        keyboardType="email-address"
         autoCapitalize="none"
-        textContentType="emailAddress"
-        returnKeyType="next"
+        keyboardType="email-address"
+        style={styles.input}
       />
 
       <TextInput
         placeholder="Password"
-        secureTextEntry
-        style={styles.input}
         value={password}
         onChangeText={setPassword}
-        textContentType="newPassword"
-        returnKeyType="done"
+        secureTextEntry
+        style={styles.input}
       />
 
       <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
+        style={[
+          styles.button,
+          loading && styles.buttonDisabled
+        ]}
         onPress={handleRegister}
         disabled={loading}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Registering..." : "Register"}
-        </Text>
+        {loading ? (
+          <ActivityIndicator color={Colors.textWhite || "#fff"} />
+        ) : (
+          <Text style={styles.buttonText}>Register</Text>
+        )}
       </TouchableOpacity>
 
       <Text
-        style={styles.link}
+        style={{ marginTop: 15, color: Colors.primary, textAlign: "center" }}
         onPress={() => navigation.navigate("Login")}
       >
-        Already have an account? Login here.
+        Already have an account? Login
       </Text>
     </View>
   );
@@ -145,10 +145,5 @@ const styles = StyleSheet.create({
     color: Colors.textWhite,
     fontWeight: "bold",
     fontSize: 16,
-  },
-  link: {
-    marginTop: 15,
-    color: Colors.primary,
-    textAlign: "center",
   },
 });

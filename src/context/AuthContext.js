@@ -1,3 +1,4 @@
+import * as Linking from "expo-linking";
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
 
@@ -7,13 +8,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Initialize session + listen for changes
+  // ✅ Initialize session + listen for auth changes
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        console.log("Initial session:", session);
 
         setUser(session?.user ?? null);
       } catch (err) {
@@ -26,7 +29,10 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log("AUTH EVENT:", event);
+        console.log("AUTH CHANGE:", session);
+
         setUser(session?.user ?? null);
       }
     );
@@ -35,6 +41,9 @@ export const AuthProvider = ({ children }) => {
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  // 🔥 NOTE: The handleDeepLink useEffect has been COMPLETELY REMOVED from here!
+  // LoginScreen.js handles the code exchange now, eliminating the race condition.
 
   // ✅ Email login
   const login = async (email, password) => {
@@ -47,15 +56,39 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  // ✅ Register (with email verification)
+  // ✅ Register (with email redirect)
   const register = async (email, password) => {
+    const redirectTo = Linking.createURL("/");
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectTo, // 🔥 IMPORTANT
+      },
     });
 
     if (error) throw error;
     return data;
+  };
+
+  // ✅ Google OAuth Login
+  const loginWithGoogle = async () => {
+    // 🔥 BRUTE FORCE: Hardcoding your exact Expo Go local IP URL
+    const redirectTo = "exp://192.168.29.208:8081"; 
+    
+    console.log("👉 FORCING REDIRECT TO:", redirectTo);
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    
+    return { ...data, redirectTo }; 
   };
 
   // ✅ Logout
@@ -71,6 +104,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        loginWithGoogle, // 👈 Exported for your UI components
         logout,
       }}
     >

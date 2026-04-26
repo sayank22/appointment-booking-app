@@ -2,128 +2,127 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+
 import AnimatedHeader from "../../components/AnimatedHeader";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase";
 import { Colors } from "../../utils/Colors";
-import { showError, showSuccess, showWarning } from "../../utils/feedback";
+import { showError, showWarning } from "../../utils/feedback";
 
-
+// Required for web browser flow
 WebBrowser.maybeCompleteAuthSession();
-
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showResend, setShowResend] = useState(false);
+  
+  // Pulling both login methods from context
+  const { login, loginWithGoogle } = useAuth();
 
-  const { login } = useAuth();
-
+  // ✅ Supabase Email login with custom UI feedback
   const handleLogin = async () => {
     try {
       if (!email || !password) {
-        return showWarning("Please fill all fields");
-      }
-
-      const normalizedEmail = email.trim().toLowerCase();
-
-      if (!normalizedEmail.includes("@")) {
-        return showWarning("Enter valid email");
+        return showWarning("Please enter email and password");
       }
 
       setLoading(true);
-
-      await login(normalizedEmail, password);
-
-      showSuccess("Login successful");
+      
+      // Using Supabase instead of local storage mock data
+      await login(email.trim().toLowerCase(), password);
+      
+      // Note: No need for showSuccess here, AuthContext automatically routes to Home!
     } catch (error) {
-      console.log("LOGIN ERROR:", error);
-
-      if (error.message?.includes("Email not confirmed")) {
-        showWarning("Verify your email first");
-        setShowResend(true);
-      } else if (error.message?.includes("Invalid login credentials")) {
-        showError("Invalid email or password");
-      } else {
-        showError(error.message || "Login failed");
-      }
+      showError(error.message || "Login failed. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Google login with working PKCE logic
   const handleGoogleLogin = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const redirectTo = Linking.createURL("/");
+      const data = await loginWithGoogle();
 
-    console.log("Redirect URL:", redirectTo);
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          data.redirectTo 
+        );
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo,
-        skipBrowserRedirect: true,
-      },
-    });
+        console.log("Browser Result:", result);
 
-    if (error) throw error;
+        if (result.type === "success" && result.url) {
+          // EXCTRACT THE CODE FROM THE URL
+          const parsedUrl = Linking.parse(result.url);
+          const authCode = parsedUrl.queryParams?.code;
 
-    const result = await WebBrowser.openAuthSessionAsync(
-      data.url,
-      redirectTo
-    );
-
-    if (result.type === "success" && result.url) {
-      // PRO-TIP: Replace the hash with a question mark so Linking.parse guarantees it finds the parameters
-      const safeUrl = result.url.replace('#', '?');
-      const parsed = Linking.parse(safeUrl);
-
-      if (parsed.queryParams?.access_token) {
-        await supabase.auth.setSession({
-          access_token: parsed.queryParams.access_token,
-          refresh_token: parsed.queryParams.refresh_token,
-        });
-        // You might want to trigger a success message or navigation here!
-      } else {
-        showError("Authentication tokens missing");
+          if (authCode) {
+            // Send ONLY the code to Supabase
+            const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+            
+            // Ignore the double-fire errors
+            if (
+              error && 
+              !error.message.includes("Invalid login credentials") &&
+              !error.message.includes("flow state")
+            ) {
+              console.error("Exchange Error:", error.message);
+              showError("Login failed during security check.");
+            }
+          } else {
+            console.error("No code found in the returned URL");
+            showError("No authentication code found.");
+          }
+        }
       }
+    } catch (err) {
+      console.error("Google login error:", err);
+      showError("Failed to log in with Google.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Google login error:", err);
-    showError("Google login failed");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <View style={styles.container}>
       <AnimatedHeader title="Welcome to BookIt" />
-
+      
       <Text style={styles.title}>Login</Text>
 
-      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-        <Text style={styles.googleText}>Continue with Google</Text>
+      {/* Google Login Button */}
+      <TouchableOpacity
+        style={[styles.button, styles.googleButton, loading && styles.buttonDisabled]}
+        onPress={handleGoogleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.googleButtonText}>Continue with Google</Text>
       </TouchableOpacity>
 
-      <Text style={{ textAlign: "center", marginVertical: 10, color: "#888" }}>
-        OR
-      </Text>
+      {/* Divider */}
+      <View style={styles.dividerContainer}>
+        <View style={styles.divider} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.divider} />
+      </View>
 
+      {/* Standard Email Login */}
       <TextInput
         placeholder="Email"
         style={styles.input}
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
         autoCapitalize="none"
       />
 
@@ -140,25 +139,19 @@ export default function LoginScreen({ navigation }) {
         onPress={handleLogin}
         disabled={loading}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Logging in..." : "Login"}
-        </Text>
+        {loading ? (
+          <ActivityIndicator color={Colors.textWhite || "#fff"} />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
       </TouchableOpacity>
 
       <Text
-        style={styles.link}
+        style={{ marginTop: 15, color: Colors.primary, textAlign: "center" }}
         onPress={() => navigation.navigate("Register")}
       >
-        Don't have an account? Register
+        {`Don't have an account? Register to Continue.`}
       </Text>
-
-      {showResend && (
-        <TouchableOpacity style={styles.resendButton}>
-          <Text style={styles.resendText}>
-            Resend verification email
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -166,16 +159,16 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "center", 
     padding: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.background, 
   },
-  title: {
+  title: { 
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: "bold", 
     marginBottom: 30,
-    textAlign: "center",
     color: Colors.textMain,
+    textAlign: "center",
   },
   input: {
     backgroundColor: Colors.cardWhite,
@@ -184,6 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 12,
     borderRadius: 8,
+    color: Colors.textMain,
   },
   button: {
     backgroundColor: Colors.primary,
@@ -192,35 +186,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonDisabled: {
-    backgroundColor: Colors.buttonDisabled,
+    backgroundColor: Colors.buttonDisabled, 
   },
   buttonText: {
     color: Colors.textWhite,
     fontWeight: "bold",
+    fontSize: 16,
   },
   googleButton: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.cardWhite,
     borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 10,
+    borderColor: Colors.border,
   },
-  googleText: {
+  googleButtonText: {
+    color: Colors.textMain,
+    fontSize: 16,
     fontWeight: "600",
   },
-  link: {
-    marginTop: 15,
-    textAlign: "center",
-    color: Colors.primary,
-  },
-  resendButton: {
-    marginTop: 12,
+  dividerContainer: {
+    flexDirection: "row",
     alignItems: "center",
+    marginVertical: 20,
   },
-  resendText: {
-    color: Colors.primary,
-    fontWeight: "600",
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: Colors.textMain,
+    fontWeight: "bold",
   },
 });
